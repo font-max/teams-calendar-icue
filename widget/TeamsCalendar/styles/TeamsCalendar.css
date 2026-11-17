@@ -187,7 +187,7 @@ html, body {
   padding: calc(var(--layout-unit) * 1.4) calc(var(--layout-unit) * 4);
   border-radius: 999px;
   background: var(--accent-color);
-  color: #fff;
+  color: var(--on-accent, #fff);
   font-size: var(--font-body);
   font-weight: 700;
   display: none;
@@ -325,7 +325,7 @@ html, body {
   text-overflow: ellipsis;
 }
 .tl-block.past { opacity: 0.4; }
-.tl-block.current { background: var(--accent-color); }
+.tl-block.current { background: var(--accent-color); color: var(--on-accent, #fff); font-weight: 600; }
 .tl-block.lane-1 { top: 54%; }
 .tl-block.lane-0.split { bottom: 50%; }
 .tl-now {

@@ -68,6 +68,19 @@ function applyStyles() {
   root.style.setProperty('--accent-color', typeof ac === 'string' ? ac : '#7b83eb');
   root.style.setProperty('--bg-color', typeof bg === 'string' ? bg : '#000000');
   root.style.setProperty('--bg-opacity', numProp('transparency', 100, 0, 100) / 100);
+  root.style.setProperty('--on-accent', readableOn(typeof ac === 'string' ? ac : '#7b83eb'));
+}
+
+// Black or white, whichever contrasts more with the given color (WCAG relative luminance).
+function readableOn(hex) {
+  var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(String(hex).trim());
+  if (!m) return '#ffffff';
+  var lum = [m[1], m[2], m[3]].map(function (h) {
+    var c = parseInt(h, 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  var L = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2];
+  return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) ? '#000000' : '#ffffff';
 }
 
 // ---------- storage (last known data) ----------
