@@ -1,0 +1,9 @@
+# local build output (the published package lives in dist/)
+widget/*.icuewidget
+
+# logs and editor/OS clutter
+*.log
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini

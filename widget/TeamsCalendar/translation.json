@@ -1,0 +1,22 @@
+{
+  "en": {
+    "translation": {
+      "Teams Calendar": "Teams Calendar",
+      "Calendar": "Calendar",
+      "Helper Access Key": "Helper Access Key",
+      "24-Hour Clock": "24-Hour Clock",
+      "Hide Finished Meetings": "Hide Finished Meetings",
+      "Show All-Day Events": "Show All-Day Events",
+      "Show Free and Declined": "Show Free and Declined",
+      "Timeline Start": "Timeline Start",
+      "Timeline End": "Timeline End",
+      "h": "h",
+      "Run the Teams Calendar Helper on this PC and paste its access key here.": "Run the Teams Calendar Helper on this PC and paste its access key here.",
+      "Widget Personalization": "Widget Personalization",
+      "Text Color": "Text Color",
+      "Accent Color": "Accent Color",
+      "Background Color": "Background Color",
+      "Background Transparency": "Background Transparency"
+    }
+  }
+}

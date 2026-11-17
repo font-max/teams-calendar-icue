@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tr('Teams Calendar')</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+
+  <meta name="x-icue-property" content="helperKey" data-label="tr('Helper Access Key')" data-type="textfield" data-default="''" />
+  <meta name="x-icue-property" content="use24h" data-label="tr('24-Hour Clock')" data-type="switch" data-default="false" />
+  <meta name="x-icue-property" content="hidePast" data-label="tr('Hide Finished Meetings')" data-type="switch" data-default="true" />
+  <meta name="x-icue-property" content="showAllDay" data-label="tr('Show All-Day Events')" data-type="switch" data-default="true" />
+  <meta name="x-icue-property" content="showFree" data-label="tr('Show Free and Declined')" data-type="switch" data-default="false" />
+  <meta name="x-icue-property" content="dayStart" data-label="tr('Timeline Start')" data-type="slider" data-default="8" data-min="0" data-max="12" data-step="1" data-unit-label="tr('h')" />
+  <meta name="x-icue-property" content="dayEnd" data-label="tr('Timeline End')" data-type="slider" data-default="18" data-min="13" data-max="24" data-step="1" data-unit-label="tr('h')" />
+
+  <meta name="x-icue-property" content="textColor" data-label="tr('Text Color')" data-type="color" data-default="'#ffffff'" />
+  <meta name="x-icue-property" content="accentColor" data-label="tr('Accent Color')" data-type="color" data-default="'#7b83eb'" />
+  <meta name="x-icue-property" content="backgroundColor" data-label="tr('Background Color')" data-type="color" data-default="'#000000'" />
+  <meta name="x-icue-property" content="transparency" data-label="tr('Background Transparency')" data-type="slider" data-default="100" data-min="0" data-max="100" data-step="1" data-unit-label="'%'" />
+
+  <script type="application/json" id="x-icue-groups">
+  [
+    { "title": "tr('Calendar')", "properties": ["helperKey", "use24h", "hidePast", "showAllDay", "showFree", "dayStart", "dayEnd"], "info": "tr('Run the Teams Calendar Helper on this PC and paste its access key here.')" },
+    { "title": "tr('Widget Personalization')", "properties": ["textColor", "accentColor", "backgroundColor", "transparency"] }
+  ]
+  </script>
+
+  <link rel="stylesheet" type="text/css" href="styles/TeamsCalendar.css" />
+</head>
+<body>
+  <div class="widget-root">
+    <div class="widget-bg" aria-hidden="true"></div>
+
+    <div class="topbar">
+      <div class="date" id="date"></div>
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText"></span></div>
+      <div class="clock" id="clock"></div>
+    </div>
+
+    <div class="state-msg" id="stateMsg">
+      <div class="state-title" id="stateTitle">Loading calendar...</div>
+      <div class="state-body" id="stateBody"></div>
+    </div>
+
+    <div class="main" id="main">
+      <div class="hero" id="hero" role="button" tabindex="0">
+        <div class="hero-badge" id="heroBadge"></div>
+        <div class="hero-countdown" id="heroCountdown"></div>
+        <div class="hero-subject" id="heroSubject"></div>
+        <div class="hero-meta" id="heroMeta"></div>
+        <div class="hero-progress" id="heroProgress"><div class="hero-progress-fill" id="heroProgressFill"></div></div>
+        <div class="join-btn" id="heroJoin">Join</div>
+      </div>
+
+      <div class="agenda">
+        <div class="agenda-title" id="agendaTitle">Later today</div>
+        <div class="agenda-list" id="agendaList"></div>
+        <div class="agenda-more" id="agendaMore"></div>
+      </div>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="tl-track" id="tlTrack"></div>
+      <div class="tl-labels" id="tlLabels"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript" src="scripts/TeamsCalendar.js"></script>
+</body>
+</html>
