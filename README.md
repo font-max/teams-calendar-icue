@@ -1,4 +1,5 @@
 # Teams Calendar for iCUE (CORSAIR Xeneon Edge)
+<img width="2000" height="1123" alt="xeneon-edge-mockup" src="https://github.com/user-attachments/assets/2e75a3d1-c025-4bed-96f1-55eafded6cc8" />
 
 Simple connector to your iCUE devices to see your meetings in Teams.
 
