@@ -4,14 +4,45 @@ Simple connector to your iCUE devices to see your meetings in Teams.
 
 Shows today's Microsoft Teams / Outlook meetings on the Xeneon Edge: a big "now / up next" card with a countdown, the rest of the day's agenda (swipe to scroll), and (on Large / Extra Large horizontal slots) a day timeline. Tap a meeting to open its Teams join link.
 
-## Get started
+## Quick setup
 
-1. Download this repository (**Code → Download ZIP**, or `git clone`), and run the commands below from its folder.
-2. Pick a helper (see [Which helper?](#which-helper)). For most people that's the **published ICS link** helper: it works with new Outlook and needs no admin approval.
-3. Install the ready-made widget package [`dist/teams-calendar.icuewidget`](dist/teams-calendar.icuewidget) in iCUE, or build it yourself from `widget/`.
+About 2 minutes. You need Windows, iCUE 5.52+ and a Microsoft 365 (work or school) account.
+
+### 1. Get the widget
+Install **Teams Calendar** from the iCUE widget marketplace, or download [`teams-calendar.icuewidget`](https://github.com/font-max/teams-calendar-icue/releases/latest/download/teams-calendar.icuewidget) and open it.
+
+### 2. Run Setup on your PC
+1. Download **[TeamsCalendarSetup.zip](https://github.com/font-max/teams-calendar-icue/releases/latest/download/TeamsCalendarSetup.zip)** and extract it (right-click → **Extract All**).
+2. Double-click **Setup.cmd**. If Windows shows *"Windows protected your PC"*, click **More info → Run anyway**.
+3. Follow the prompts. Setup:
+   - installs Node.js if you don't have it;
+   - opens Outlook's calendar-sharing page. Under **Publish a calendar**, choose **Calendar** and **Can view all details**, click **Publish**, copy the **ICS** link, and paste it into Setup;
+   - checks that it can read your meetings, then starts the helper and makes it start with Windows;
+   - **copies your access key to the clipboard**.
+
+### 3. Paste the key in iCUE
+Select the Teams Calendar widget, paste (Ctrl+V) into **Helper Access Key**, and if iCUE asks about network access to `localhost:38127`, choose **Allow**. Your meetings appear within a minute.
+
+### Troubleshooting
+| The widget says | Do this |
+|---|---|
+| **Connect your calendar** | The key isn't set: run Setup and paste the key it copies. |
+| **Access key not accepted** | Run Setup again (it copies the current key) and paste it. |
+| **Helper not running** | Restart the PC, or run Setup again. |
+| **Sign-in needed** / no calendar link | Run Setup again and paste your ICS link. |
+| Meetings are a little behind | Microsoft refreshes published calendars on its own schedule; changes can take up to ~30 min. |
+
+- **Can't find "Publish a calendar"?** Your organization has turned publishing off. See [Which helper?](#which-helper) for the other options.
+- **To change your calendar link,** run Setup again.
+- **To remove everything,** double-click **Uninstall.cmd**. Also click **Unpublish** in Outlook's calendar-sharing settings to stop sharing the link.
+- **Privacy:** your calendar link and access key stay on your PC (the link is encrypted for your Windows user). The helper only answers requests from this PC.
+
+## For developers
 
 ```
 teams-calendar-widget/
+├── setup/                       one-click Setup.cmd / Uninstall.cmd (built into TeamsCalendarSetup.zip)
+├── tools/build-release.ps1      builds dist/teams-calendar.icuewidget and dist/TeamsCalendarSetup.zip
 ├── helper/                      v1: Microsoft Graph (needs IT approval of the sign-in app)
 │   ├── teams-calendar-helper.mjs
 │   ├── start-hidden.vbs

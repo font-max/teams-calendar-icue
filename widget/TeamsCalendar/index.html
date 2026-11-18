@@ -21,7 +21,7 @@
 
   <script type="application/json" id="x-icue-groups">
   [
-    { "title": "tr('Calendar')", "properties": ["helperKey", "use24h", "hidePast", "showAllDay", "showFree", "dayStart", "dayEnd"], "info": "tr('Run the Teams Calendar Helper on this PC and paste its access key here.')" },
+    { "title": "tr('Calendar')", "properties": ["helperKey", "use24h", "hidePast", "showAllDay", "showFree", "dayStart", "dayEnd"], "info": "tr('Setup guide: github.com/font-max/teams-calendar-icue - run Setup on this PC, then paste the access key it copies for you into Helper Access Key.')" },
     { "title": "tr('Widget Personalization')", "properties": ["textColor", "accentColor", "backgroundColor", "transparency"] }
   ]
   </script>
@@ -41,6 +41,10 @@
     <div class="state-msg" id="stateMsg">
       <div class="state-title" id="stateTitle">Loading calendar...</div>
       <div class="state-body" id="stateBody"></div>
+      <div class="guide" id="guide">
+        <div class="guide-btn" id="guideBtn" role="button" tabindex="0">Open setup guide</div>
+        <div class="guide-url">github.com/font-max/teams-calendar-icue</div>
+      </div>
     </div>
 
     <div class="main" id="main">

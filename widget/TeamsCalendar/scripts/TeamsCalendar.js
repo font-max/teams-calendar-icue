@@ -186,7 +186,8 @@ function refreshData() {
   if (!s.key) {
     state.problem = {
       kind: 'setup', title: 'Connect your calendar',
-      body: 'Paste the helper\'s access key into this widget\'s "Helper Access Key" setting in iCUE. To show it, run your helper with <code>key</code>, e.g. <code>node ics-calendar-helper.mjs key</code>.'
+      body: '<ol><li>Tap <b>Open setup guide</b> and run <b>Setup</b> on this PC. It takes about 2 minutes.</li>' +
+            '<li>Paste the key it copies for you into this widget\'s <b>Helper Access Key</b> setting in iCUE.</li></ol>'
     };
     render();
     return;
@@ -218,9 +219,9 @@ function refreshData() {
     .catch(function (err) {
       state.stale = true;
       if (err && err.kind === 'key') {
-        state.problem = { kind: 'key', title: 'Access key not accepted', body: 'The key in widget settings does not match the helper. Run <code>node teams-calendar-helper.mjs key</code> and paste the result.' };
+        state.problem = { kind: 'key', title: 'Access key not accepted', body: 'The key in this widget\'s settings doesn\'t match the helper. Run <b>Setup</b> again: it copies the right key to your clipboard. Then paste it into <b>Helper Access Key</b>.' };
       } else {
-        state.problem = { kind: 'offline', title: 'Helper not running', body: 'Could not reach the Teams Calendar Helper on localhost:38127. Start it (or run <code>install-startup.ps1</code> so it starts with Windows). If iCUE asked about network access for this widget, allow it.' };
+        state.problem = { kind: 'offline', title: 'Helper not running', body: 'The calendar helper isn\'t running on this PC. Restart the PC, or run <b>Setup</b> again. If iCUE asked about network access for this widget, choose Allow.' };
       }
     })
     .finally(function () { state.fetching = false; render(); });
@@ -246,8 +247,17 @@ function showStateMsg(problem) {
   $('main').classList.add('hidden');
   $('timeline').style.visibility = 'hidden';
   $('stateTitle').textContent = problem.title;
-  // body strings are authored here (only <code> markup); helper messages are escaped before they get here
+  // body strings are authored here (simple markup only); helper messages are escaped before they get here
   $('stateBody').innerHTML = problem.body;
+  var needsGuide = ['setup', 'key', 'offline', 'login'].indexOf(problem.kind) !== -1;
+  $('guide').classList.toggle('visible', needsGuide);
+}
+
+var GUIDE_URL = 'https://github.com/font-max/teams-calendar-icue#quick-setup';
+function initGuideButton() {
+  var btn = $('guideBtn');
+  btn.addEventListener('click', function () { openLink(GUIDE_URL); });
+  btn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') openLink(GUIDE_URL); });
 }
 
 function render() {
@@ -596,5 +606,6 @@ function bootCheck() {
   onIcueDataUpdated(); // plain browser
 }
 initAgendaScrolling();
+initGuideButton();
 render();
 bootCheck();

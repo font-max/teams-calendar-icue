@@ -502,7 +502,7 @@ async function refresh() {
     const url = loadUrl();
     if (!url) {
       cache.status = 'needs_login';
-      cache.message = 'No calendar link set. Publish your calendar in Outlook (Settings > Calendar > Shared calendars), then run: node ics-calendar-helper.mjs set-url <ICS link>';
+      cache.message = 'No calendar link saved yet. Run Setup on this PC to connect your Outlook calendar.';
     } else {
       try {
         const [ws, we] = todayWindow();

@@ -1,0 +1,17 @@
+Teams Calendar for iCUE - Setup
+===============================
+
+1. Double-click  Setup.cmd
+   It installs what's needed, asks for your Outlook calendar link,
+   and copies your widget access key to the clipboard.
+
+2. In iCUE, paste the key into the Teams Calendar widget's
+   "Helper Access Key" setting.
+
+That's it. To remove everything later, double-click Uninstall.cmd.
+
+If Windows shows "Windows protected your PC", click "More info" and
+then "Run anyway" (the scripts are plain text - open them in Notepad to
+see exactly what they do).
+
+Full guide: https://github.com/font-max/teams-calendar-icue#quick-setup
