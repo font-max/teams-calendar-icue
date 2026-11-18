@@ -23,6 +23,7 @@ Install **Teams Calendar** from the iCUE widget marketplace, or download [`teams
 
 ### 3. Paste the key in iCUE
 Select the Teams Calendar widget, paste (Ctrl+V) into **Helper Access Key**, and if iCUE asks about network access to `localhost:38127`, choose **Allow**. Your meetings appear within a minute.
+<img width="599" height="283" alt="howtoicue" src="https://github.com/user-attachments/assets/e93e1de2-c9af-4251-86a0-5946ec756de2" />
 
 ### Troubleshooting
 | The widget says | Do this |
