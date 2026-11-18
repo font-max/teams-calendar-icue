@@ -23,7 +23,8 @@ $AppDir     = Join-Path $DataDir 'app'
 $Port       = 38127
 $StartupDir = [Environment]::GetFolderPath('Startup')
 $Shortcut   = Join-Path $StartupDir 'Teams Calendar Helper (ICS).lnk'
-$OldShortcuts = @('Teams Calendar Helper.lnk', 'Teams Calendar Helper (Outlook).lnk') | ForEach-Object { Join-Path $StartupDir $_ }
+# Anything that launches a Teams Calendar helper (current or older versions, any install location)
+$HelperPattern = 'calendar-helper|teams-calendar-widget|teams-calendar-icue|TeamsCalendarHelper'
 $GuideUrl   = 'https://github.com/font-max/teams-calendar-icue#quick-setup'
 $PublishUrl = 'https://outlook.office.com/mail/options/calendar/SharedCalendars'
 
@@ -58,6 +59,43 @@ function Stop-Helpers {
     Start-Sleep -Milliseconds 500
 }
 
+# Remove every way an older (or duplicate) helper could start with Windows, so only ours runs.
+# -KeepCurrent leaves our own startup shortcut in place.
+function Remove-OldAutostart([switch]$KeepCurrent) {
+    $removed = @()
+    $ws = New-Object -ComObject WScript.Shell
+    $dirs = @($StartupDir, [Environment]::GetFolderPath('CommonStartup')) | Where-Object { $_ -and (Test-Path $_) }
+    foreach ($d in $dirs) {
+        foreach ($f in Get-ChildItem -LiteralPath $d -File -ErrorAction SilentlyContinue) {
+            if ($KeepCurrent -and $f.FullName -eq $Shortcut) { continue }
+            $what = $f.Name
+            if ($f.Extension -eq '.lnk') {
+                try { $l = $ws.CreateShortcut($f.FullName); $what = "$($f.Name) $($l.TargetPath) $($l.Arguments)" } catch {}
+            } elseif ($f.Extension -match '^\.(vbs|cmd|bat|ps1)$') {
+                $what = "$($f.Name) " + (Get-Content -LiteralPath $f.FullName -Raw -ErrorAction SilentlyContinue)
+            }
+            if ($what -match $HelperPattern -or $f.Name -like 'Teams Calendar Helper*') {
+                try { Remove-Item -LiteralPath $f.FullName -Force; $removed += "Startup folder: $($f.Name)" } catch { Warn "Could not remove $($f.FullName) (needs admin?)" }
+            }
+        }
+    }
+    foreach ($key in 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run') {
+        $props = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
+        if (-not $props) { continue }
+        foreach ($p in $props.PSObject.Properties | Where-Object { $_.Name -notlike 'PS*' }) {
+            if ([string]$p.Value -match $HelperPattern) {
+                try { Remove-ItemProperty -Path $key -Name $p.Name -ErrorAction Stop; $removed += "Run key: $($p.Name)" } catch { Warn "Could not remove Run entry '$($p.Name)' (needs admin?)" }
+            }
+        }
+    }
+    Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {
+        (($_.Actions | ForEach-Object { "$($_.Execute) $($_.Arguments)" }) -join ' ') -match $HelperPattern
+    } | ForEach-Object {
+        try { Unregister-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath -Confirm:$false -ErrorAction Stop; $removed += "Scheduled task: $($_.TaskName)" } catch { Warn "Could not remove scheduled task '$($_.TaskName)' (needs admin?)" }
+    }
+    return $removed
+}
+
 Write-Host ''
 Write-Host '  Teams Calendar for iCUE - Setup' -ForegroundColor White
 Write-Host '  -------------------------------'
@@ -65,7 +103,7 @@ Write-Host '  -------------------------------'
 # ---------------------------------------------------------------- uninstall
 if ($Uninstall) {
     Stop-Helpers
-    foreach ($s in @($Shortcut) + $OldShortcuts) { Remove-Item $s -ErrorAction SilentlyContinue }
+    Remove-OldAutostart | ForEach-Object { Info "Removed $_" }
     if (Test-Path $DataDir) { Remove-Item $DataDir -Recurse -Force }
     Ok 'Helper stopped and removed (including your saved calendar link and access key).'
     Info 'To also stop sharing your calendar: Outlook > Settings > Calendar > Shared calendars > Unpublish.'
@@ -185,9 +223,7 @@ if ($busy) {
     $p = Get-Process -Id $busy.OwningProcess -ErrorAction SilentlyContinue
     Fail "Port $Port is used by another program ($($p.ProcessName)). Close it and run Setup again."
 }
-foreach ($old in $OldShortcuts) {
-    if (Test-Path $old) { Remove-Item $old -Force; Info "Removed an older helper from startup: $(Split-Path $old -Leaf)" }
-}
+Remove-OldAutostart | ForEach-Object { Info "Removed an older helper from startup ($_)" }
 $ws = New-Object -ComObject WScript.Shell
 $lnk = $ws.CreateShortcut($Shortcut)
 $lnk.TargetPath = "$env:WINDIR\System32\wscript.exe"
@@ -203,11 +239,23 @@ for ($i = 0; $i -lt 30 -and -not $up; $i++) {
     try { $up = (Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 2).ok } catch {}
 }
 if (-not $up) { Fail "The helper did not start. Log: $DataDir\helper-ics.log" }
-Ok 'Running now, and set to start automatically when you sign in to Windows'
+
+# Make sure the program answering on the port is OUR installed helper and accepts the key the widget will use.
+$key = (& $node $mjs key | Out-String).Trim()
+$owner = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+$ownerCmd = if ($owner) { (Get-CimInstance Win32_Process -Filter "ProcessId=$($owner.OwningProcess)").CommandLine } else { '' }
+if ($ownerCmd -notlike "*$mjs*") { Fail "Another program is answering on port $Port instead of the helper: $ownerCmd" }
+try {
+    Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/events" -Headers @{ 'X-Calendar-Key' = $key } -TimeoutSec 60 | Out-Null
+} catch {
+    Fail "The helper did not accept its own access key ($($_.Exception.Message)). Run Setup again; if it repeats, restart the PC first."
+}
+$left = @(Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match 'calendar-helper\.mjs' -and $_.CommandLine -notlike "*$mjs*" })
+if ($left.Count) { Warn "$($left.Count) other Teams Calendar helper process(es) still running; restarting the PC will clear them." }
+Ok 'Running now, verified with your access key, and set to start automatically when you sign in to Windows'
 
 # ---------------------------------------------------------------- 5. access key
 Step 5 'Your widget access key'
-$key = (& $node $mjs key | Out-String).Trim()
 $copied = $false
 try { Set-Clipboard -Value $key; $copied = $true } catch {}
 Write-Host ''

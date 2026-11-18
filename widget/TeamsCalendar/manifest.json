@@ -3,7 +3,7 @@
   "id": "com.fontmax.teamscalendar",
   "name": "Teams Calendar",
   "description": "Today's Microsoft Teams / Outlook meetings with a countdown to the next one and tap-to-join. Requires the Teams Calendar Helper running on this PC.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "preview_icon": "icon.svg",
   "min_app_version": "5.52",
   "min_framework_version": "1.9.0",

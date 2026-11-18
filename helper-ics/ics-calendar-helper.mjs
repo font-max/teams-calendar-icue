@@ -19,7 +19,7 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const PORT = 38127;
+const PORT = Number(process.env.TEAMS_CAL_PORT) || 38127; // override only for testing
 const REFRESH_MS = 5 * 60 * 1000;
 const DAY = 86400000;
 
@@ -521,6 +521,38 @@ async function refresh() {
   return refreshing;
 }
 
+// The copy Setup installs lives in %LOCALAPPDATA%\TeamsCalendarHelper\app. Only that copy may take the port over,
+// so a development copy started by hand can never knock out the installed one.
+const SELF = fileURLToPath(import.meta.url);
+const IS_INSTALLED = SELF.toLowerCase().startsWith(path.join(DATA_DIR, 'app').toLowerCase() + path.sep);
+
+// If another Teams Calendar helper (an older version or a stray copy) holds the port, stop it.
+// Never touches unrelated programs. Returns true if something was stopped.
+function takeOverPort() {
+  if (!IS_INSTALLED && process.env.TEAMS_CAL_TAKEOVER !== '1') return false;
+  const ps = `$c = Get-NetTCPConnection -LocalPort ${PORT} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; ` +
+    'if ($c) { $p = Get-CimInstance Win32_Process -Filter ("ProcessId=" + $c.OwningProcess); [string]$p.ProcessId + "`t" + $p.CommandLine }';
+  const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { encoding: 'utf8', windowsHide: true, timeout: 30_000 });
+  const line = String(r.stdout || '').trim();
+  const tab = line.indexOf('\t');
+  if (tab < 0) return false;
+  const pid = Number(line.slice(0, tab));
+  const cmd = line.slice(tab + 1);
+  if (!pid || pid === process.pid) return false;
+  if (!/calendar-helper\.mjs/i.test(cmd) || cmd.toLowerCase().includes(SELF.toLowerCase())) {
+    log(`Port ${PORT} is used by another program (PID ${pid}); not touching it: ${cmd}`);
+    return false;
+  }
+  try {
+    process.kill(pid);
+    log(`Stopped an older Teams Calendar helper on port ${PORT} (PID ${pid}): ${cmd}`);
+    return true;
+  } catch (err) {
+    log(`Could not stop PID ${pid}: ${err.message}`);
+    return false;
+  }
+}
+
 function serve(cfg) {
   const allowedHosts = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]:${PORT}`]);
   const handler = async (req, res) => {
@@ -545,11 +577,19 @@ function serve(cfg) {
     }
     json(404, { error: 'not found' });
   };
-  const listen = (host) => {
+  const listen = (host, attempt = 0) => {
     const srv = http.createServer(handler);
     srv.on('error', (e) => {
-      if (e.code === 'EADDRINUSE') { log(`Port ${PORT} already in use on ${host} - is another Teams Calendar helper running?`); if (host === '127.0.0.1') process.exit(1); }
-      else if (host !== '::1') log('Server error:', e.message);
+      if (e.code === 'EADDRINUSE') {
+        // At boot an older Teams Calendar helper may have grabbed the port first: the installed helper takes over.
+        // (::1 just retries: the 127.0.0.1 listener does the takeover and frees both.)
+        if (attempt < 3 && (attempt > 0 || host === '::1' || takeOverPort())) {
+          setTimeout(() => listen(host, attempt + 1), 1500);
+          return;
+        }
+        log(`Port ${PORT} already in use on ${host} - is another Teams Calendar helper running?`);
+        if (host === '127.0.0.1') process.exit(1);
+      } else if (host !== '::1') log('Server error:', e.message);
     });
     srv.listen(PORT, host, () => log(`Listening on http://${host.includes(':') ? `[${host}]` : host}:${PORT} (source: published ICS)`));
   };

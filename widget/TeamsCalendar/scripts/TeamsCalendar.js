@@ -206,8 +206,8 @@ function refreshData() {
         scheduleFromHelper(data);
       } else if (data.status === 'needs_login') {
         state.stale = true;
-        state.problem = { kind: 'login', title: 'Sign-in needed', body: data.message ? escapeHtml(data.message) :
-          'The helper is running but not signed in to Microsoft 365. Run <code>node teams-calendar-helper.mjs login</code> on this PC.' };
+        state.problem = { kind: 'login', title: 'Calendar not connected', body: data.message ? escapeHtml(data.message) :
+          'The helper is running but has no calendar link. Run <b>Setup</b> again on this PC.' };
       } else if (data.status === 'starting') {
         state.stale = true;
         state.problem = { kind: 'starting', title: 'Starting up', body: escapeHtml(data.message || 'The helper is reading your calendar...') };
