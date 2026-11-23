@@ -7,3 +7,9 @@ node_modules/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# private test widget (contains a calendar link)
+cors-test/
+
+# Wrangler local cache (account details)
+.wrangler/

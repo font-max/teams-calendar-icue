@@ -6,7 +6,7 @@
   <title>tr('Teams Calendar')</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
 
-  <meta name="x-icue-property" content="helperKey" data-label="tr('Helper Access Key')" data-type="textfield" data-default="''" />
+  <meta name="x-icue-property" content="calendarLink" data-label="tr('Calendar Link')" data-type="textfield" data-default="''" />
   <meta name="x-icue-property" content="use24h" data-label="tr('24-Hour Clock')" data-type="switch" data-default="false" />
   <meta name="x-icue-property" content="hidePast" data-label="tr('Hide Finished Meetings')" data-type="switch" data-default="true" />
   <meta name="x-icue-property" content="showAllDay" data-label="tr('Show All-Day Events')" data-type="switch" data-default="true" />
@@ -21,7 +21,7 @@
 
   <script type="application/json" id="x-icue-groups">
   [
-    { "title": "tr('Calendar')", "properties": ["helperKey", "use24h", "hidePast", "showAllDay", "showFree", "dayStart", "dayEnd"], "info": "tr('Setup guide: github.com/font-max/teams-calendar-icue - run Setup on this PC, then paste the access key it copies for you into Helper Access Key.')" },
+    { "title": "tr('Calendar')", "properties": ["calendarLink", "use24h", "hidePast", "showAllDay", "showFree", "dayStart", "dayEnd"], "info": "tr('Paste your Outlook published calendar ICS link. Guide: github.com/font-max/teams-calendar-icue')" },
     { "title": "tr('Widget Personalization')", "properties": ["textColor", "accentColor", "backgroundColor", "transparency"] }
   ]
   </script>
@@ -70,6 +70,7 @@
     </div>
   </div>
 
+  <script type="text/javascript" src="scripts/ics.js"></script>
   <script type="text/javascript" src="scripts/TeamsCalendar.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
     "translation": {
       "Teams Calendar": "Teams Calendar",
       "Calendar": "Calendar",
-      "Helper Access Key": "Helper Access Key",
+      "Calendar Link": "Calendar Link",
       "24-Hour Clock": "24-Hour Clock",
       "Hide Finished Meetings": "Hide Finished Meetings",
       "Show All-Day Events": "Show All-Day Events",
@@ -11,7 +11,7 @@
       "Timeline Start": "Timeline Start",
       "Timeline End": "Timeline End",
       "h": "h",
-      "Setup guide: github.com/font-max/teams-calendar-icue - run Setup on this PC, then paste the access key it copies for you into Helper Access Key.": "Setup guide: github.com/font-max/teams-calendar-icue - run Setup on this PC, then paste the access key it copies for you into Helper Access Key.",
+      "Paste your Outlook published calendar ICS link. Guide: github.com/font-max/teams-calendar-icue": "Paste your Outlook published calendar ICS link. Guide: github.com/font-max/teams-calendar-icue",
       "Widget Personalization": "Widget Personalization",
       "Text Color": "Text Color",
       "Accent Color": "Accent Color",

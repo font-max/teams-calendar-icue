@@ -1,0 +1,8 @@
+name = "teams-calendar-relay"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+# Privacy: no request logs, no traces.
+[observability]
+enabled = false

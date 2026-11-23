@@ -2,22 +2,30 @@
   "author": "FontMax",
   "id": "com.fontmax.teamscalendar",
   "name": "Teams Calendar",
-  "description": "Today's Microsoft Teams / Outlook meetings with a countdown to the next one and tap-to-join. Requires the Teams Calendar Helper running on this PC.",
-  "version": "1.5.0",
+  "description": "Today's Microsoft Teams / Outlook meetings with a countdown to the next one and tap-to-join. Paste your Outlook published calendar (ICS) link in the widget settings - no app to install.",
+  "version": "2.0.0",
   "preview_icon": "icon.svg",
   "min_app_version": "5.52",
   "min_framework_version": "1.9.0",
   "os": [
-    { "platform": "windows" }
+    {
+      "platform": "windows"
+    }
   ],
   "supported_devices": [
-    { "type": "dashboard_lcd" }
+    {
+      "type": "dashboard_lcd"
+    }
   ],
   "interactive": true,
   "required_plugins": [
     "widgetbuilder.linkprovider:Url:1.0"
   ],
   "permissions": [
-    { "type": "url", "domain": "localhost", "port": 38127 }
+    {
+      "type": "url",
+      "domain": "teams-calendar-relay.fontoura.workers.dev",
+      "port": 443
+    }
   ]
 }

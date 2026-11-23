@@ -6,24 +6,21 @@ icueEvents = {
   onICUEInitialized: onIcueInitialized
 };
 
-var HELPER_URL = 'http://localhost:38127/api/events';
+// Outlook doesn't let web pages read published calendars directly (no CORS header), so the calendar is
+// fetched through a tiny pass-through relay (source: /relay in the GitHub repo). It stores and logs nothing.
+var RELAY_URL = 'https://teams-calendar-relay.fontoura.workers.dev/calendar';
 var DEMO = /[?&]demo=1/.test(location.search);
-var RETRY_MS = 60000; // while there is a problem (no key, helper offline, ...)
+var REFRESH_MS = 10 * 60000; // Outlook only republishes the calendar every few minutes anyway
+var RETRY_MS = 2 * 60000;    // while something is wrong
 
-// Ask again just after the helper's next update instead of polling on a fixed timer.
-function scheduleFromHelper(data) {
-  var every = Number(data.refreshSeconds) * 1000;
-  if (!isFinite(every) || every <= 0) { state.nextFetchAt = Date.now() + RETRY_MS; return; }
-  var updated = Date.parse(data.updated);
-  var next = (isFinite(updated) ? updated : Date.now()) + every + 5000;
-  state.nextFetchAt = Math.min(Math.max(next, Date.now() + 30000), Date.now() + every + 5000);
-}
+// Same rule the relay applies: an Outlook published-calendar (.ics) link.
+var LINK_RE = /^(?:https|webcal):\/\/outlook\.(?:office365|office|live)\.com\/owa\/calendar\/[^\/\s]+\/[^\/\s]+\/[^\/\s]+\.ics(?:[?#]\S*)?$/i;
 
 var state = {
-  payload: null,      // last good payload from helper
+  payload: null,      // last good payload
   stale: false,
   problem: null,      // { title, body, kind }
-  nextFetchAt: 0,     // when to ask the helper again (follows the helper's own refresh schedule)
+  nextFetchAt: 0,     // when to download the calendar again
   fetching: false,
   language: 'en'
 };
@@ -50,7 +47,7 @@ function numProp(name, def, min, max) {
 
 function settings() {
   return {
-    key: String(prop('helperKey', '')).trim(),
+    link: String(prop('calendarLink', '')).trim(),
     use24h: boolProp('use24h', false),
     hidePast: boolProp('hidePast', true),
     showAllDay: boolProp('showAllDay', true),
@@ -176,53 +173,61 @@ function fetchWithTimeout(url, opts, ms) {
   return fetch(url, opts).finally(function () { clearTimeout(t); });
 }
 
+var SETUP_STEPS =
+  '<ol><li>In Outlook on the web: <b>Settings &rsaquo; Calendar &rsaquo; Shared calendars &rsaquo; Publish a calendar</b>. Choose your calendar and <b>Can view all details</b>, then <b>Publish</b>.</li>' +
+  '<li>Copy the <b>ICS</b> link and paste it into this widget\'s <b>Calendar Link</b> setting in iCUE.</li></ol>';
+
+function fail(kind, title, body) {
+  var e = new Error(title); e.kind = kind; e.title = title; e.body = body; return e;
+}
+
 function refreshData() {
   var s = settings();
   if (state.fetching) return;
-  state.nextFetchAt = Date.now() + RETRY_MS; // until a good response tells us the helper's schedule
+  state.nextFetchAt = Date.now() + RETRY_MS;
 
   if (DEMO) { state.payload = demoPayload(); state.stale = false; state.problem = null; render(); return; }
 
-  if (!s.key) {
-    state.problem = {
-      kind: 'setup', title: 'Connect your calendar',
-      body: '<ol><li>Tap <b>Open setup guide</b> and run <b>Setup</b> on this PC. It takes about 2 minutes.</li>' +
-            '<li>Paste the key it copies for you into this widget\'s <b>Helper Access Key</b> setting in iCUE.</li></ol>'
-    };
+  if (!s.link) {
+    state.problem = { kind: 'setup', title: 'Connect your calendar', body: SETUP_STEPS };
+    render();
+    return;
+  }
+  if (!LINK_RE.test(s.link)) {
+    var html = /\.html?(?:[?#]|$)/i.test(s.link);
+    state.problem = { kind: 'link', title: 'That isn\'t a calendar link',
+      body: html ? 'This is the <b>HTML</b> link. Copy the <b>ICS</b> link from the same Outlook page instead.'
+                 : 'Paste the <b>ICS</b> link from Outlook\'s <b>Publish a calendar</b> settings. It ends in <code>.ics</code>.' };
     render();
     return;
   }
 
   state.fetching = true;
-  fetchWithTimeout(HELPER_URL, { headers: { 'X-Calendar-Key': s.key }, cache: 'no-store' }, 15000)
+  var link = s.link.replace(/^webcal:/i, 'https:').replace(/#.*$/, '');
+  // text/plain keeps this a "simple" request (no CORS preflight); the link stays out of the URL.
+  fetchWithTimeout(RELAY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: link, cache: 'no-store' }, 30000)
     .then(function (res) {
-      if (res.status === 401) throw { kind: 'key' };
-      if (!res.ok) throw { kind: 'http', status: res.status };
-      return res.json();
+      return res.text().then(function (text) {
+        if (res.ok) return text;
+        if (res.status === 400) throw fail('link', 'That isn\'t a calendar link', 'Paste the <b>ICS</b> link from Outlook\'s <b>Publish a calendar</b> settings.');
+        if (res.status === 404) throw fail('link', 'Calendar link not working', 'Outlook didn\'t return a calendar for this link. It may have been reset or unpublished. Publish the calendar again in Outlook and paste the new <b>ICS</b> link.');
+        if (res.status === 429) throw fail('relay', 'Calendar service busy', 'Too many requests right now. Retrying automatically.');
+        throw fail('relay', 'Calendar unavailable', 'Outlook didn\'t respond (' + escapeHtml(text.slice(0, 40) || res.status) + '). Retrying automatically.');
+      });
     })
-    .then(function (data) {
-      if (data.status === 'ok') {
-        state.payload = data; state.stale = false; state.problem = null; saveCache(data);
-        scheduleFromHelper(data);
-      } else if (data.status === 'needs_login') {
-        state.stale = true;
-        state.problem = { kind: 'login', title: 'Calendar not connected', body: data.message ? escapeHtml(data.message) :
-          'The helper is running but has no calendar link. Run <b>Setup</b> again on this PC.' };
-      } else if (data.status === 'starting') {
-        state.stale = true;
-        state.problem = { kind: 'starting', title: 'Starting up', body: escapeHtml(data.message || 'The helper is reading your calendar...') };
-      } else {
-        state.stale = true;
-        state.problem = { kind: 'graph', title: 'Calendar unavailable', body: data.message ? escapeHtml(data.message) + ' Retrying automatically.' : 'The calendar source did not respond. Retrying automatically.' };
-      }
+    .then(function (text) {
+      var ws = startOfDay(new Date()), we = addDays(ws, 2);
+      var events;
+      try { events = TeamsIcs.eventsInWindow(text, ws.getTime(), we.getTime()); }
+      catch (e) { throw fail('relay', 'Couldn\'t read the calendar', 'The calendar file had an unexpected format. Retrying automatically.'); }
+      var data = { status: 'ok', events: events, updated: new Date().toISOString() };
+      state.payload = data; state.stale = false; state.problem = null; saveCache(data);
+      state.nextFetchAt = Date.now() + REFRESH_MS;
     })
     .catch(function (err) {
       state.stale = true;
-      if (err && err.kind === 'key') {
-        state.problem = { kind: 'key', title: 'Access key not accepted', body: 'The key in this widget\'s settings doesn\'t match the helper. Run <b>Setup</b> again: it copies the right key to your clipboard. Then paste it into <b>Helper Access Key</b>.' };
-      } else {
-        state.problem = { kind: 'offline', title: 'Helper not running', body: 'The calendar helper isn\'t running on this PC. Restart the PC, or run <b>Setup</b> again. If iCUE asked about network access for this widget, choose Allow.' };
-      }
+      if (err && err.kind) state.problem = { kind: err.kind, title: err.title, body: err.body };
+      else state.problem = { kind: 'offline', title: 'No connection', body: 'Couldn\'t reach the calendar service. Check this PC\'s internet connection. If iCUE asked about network access for this widget, choose Allow. Retrying automatically.' };
     })
     .finally(function () { state.fetching = false; render(); });
 }
@@ -247,9 +252,9 @@ function showStateMsg(problem) {
   $('main').classList.add('hidden');
   $('timeline').style.visibility = 'hidden';
   $('stateTitle').textContent = problem.title;
-  // body strings are authored here (simple markup only); helper messages are escaped before they get here
+  // body strings are authored here (simple markup only); anything from the network is escaped before it gets here
   $('stateBody').innerHTML = problem.body;
-  var needsGuide = ['setup', 'key', 'offline', 'login'].indexOf(problem.kind) !== -1;
+  var needsGuide = ['setup', 'link'].indexOf(problem.kind) !== -1;
   $('guide').classList.toggle('visible', needsGuide);
 }
 
